@@ -321,3 +321,48 @@ grep -n '|.*\$[^$]*|[^$]*\$.*|' filename.md | grep -v '\\mid'
 - **中文字符在 LaTeX 公式中可能无法渲染**，建议移到公式外部或转换为表格
 - **未闭合的 Markdown 标记会导致后续内容无法正确渲染**，需要检查并修复
 - **粘贴内容可能会丢失 `$` 分隔符**，需要检查并修复缺失的分隔符
+
+## ⚠️ 重要：工具选择
+
+### ❌ 不要用 sed 处理 LaTeX 的 `\` 转义
+
+在 PowerShell 环境中，`sed` 的 `\` 转义会被 shell 吃掉，导致：
+- `\mid` → `mid`（丢失反斜杠）
+- `\gamma` → `gamma`（丢失反斜杠）
+- `\text{...}` → `text{...}`（丢失反斜杠）
+
+**示例（错误）：**
+```bash
+# PowerShell 中 sed 会丢失 \，导致 \mid 变成 mid
+sed -i 's/mid/\\mid/g' file.md  # ❌ 不会生效
+```
+
+### ✅ 正确做法：用 Edit 工具
+
+对于需要处理 `\` 转义的 LaTeX 修改，**必须使用 Edit 工具**：
+
+```
+Edit 工具：
+  old_string: "$P(s' mid s,a)$"
+  new_string: "$P(s' \\mid s,a)$"
+  replace_all: false
+```
+
+**为什么 Edit 工具可以？**
+- Edit 工具直接处理字符串，不经过 shell 解析
+- `\` 不会被吃掉，能正确保留
+
+### 修复 LaTeX 的推荐流程
+
+1. **简单替换**（无 `\` 转义）：可以用 sed
+   ```bash
+   sed -i 's/old/new/g' file.md  # ✅ 可以
+   ```
+
+2. **涉及 `\` 转义**（如 `\mid`、`\gamma`、`\text`）：必须用 Edit 工具
+   ```
+   Edit 工具：old → new  # ✅ 可以
+   sed 's/\\mid/mid/g'   # ❌ PowerShell 会吃掉 \
+   ```
+
+3. **批量替换多个 `\` 转义**：逐个用 Edit 工具处理
