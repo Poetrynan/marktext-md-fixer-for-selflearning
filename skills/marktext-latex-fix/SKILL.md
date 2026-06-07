@@ -1,7 +1,7 @@
 ---
 name: fix-latex
 description: This skill should be used when the user mentions "公式不显示", "公式显示不对", "LaTeX", "数学公式", "MarkText", "md公式", "markdown公式", "br标签", or asks to fix math formulas in .md files for MarkText rendering.
-version: 3.0.0
+version: 4.0.0
 ---
 
 # MarkText LaTeX 公式修复
@@ -147,6 +147,54 @@ output_mode: content
 | $ R_{t+1} $：下一步奖励，$ \gamma $：折扣因子 |
 ```
 
+### Step 7: 修复 LaTeX 公式中的中文字符
+
+**问题描述：**
+MarkText 的 LaTeX 渲染器可能不支持中文字符，导致包含中文的公式无法正确显示。
+
+**检测方法：**
+使用 Grep 查找包含中文字符的 LaTeX 公式：
+```
+pattern: \\text\{[^}]*[一-鿿]
+output_mode: content
+-n: true
+```
+
+**修复方案：**
+- **块级公式**：将包含中文的公式转换为 Markdown 表格
+- **行内公式**：将中文文本移到公式外部
+
+**示例 1：块级公式（转换为表格）**
+```markdown
+# 修复前（中文在 LaTeX 中，MarkText 不渲染）
+$$
+\begin{aligned}
+\text{第1局} &\rightarrow \text{记录奖励序列} \rightarrow \text{算出回报 } G_t = 14.05 \\
+\text{第2局} &\rightarrow \text{记录奖励序列} \rightarrow \text{算出回报 } G_t = 17.20 \\
+\end{aligned}
+$$
+
+# 修复后（转换为 Markdown 表格）
+| 步骤 | 计算过程 | 结果 |
+|------|----------|------|
+| 第1局 | 记录奖励序列 $\to$ 算出回报 | $G_t = 14.05$ |
+| 第2局 | 记录奖励序列 $\to$ 算出回报 | $G_t = 17.20$ |
+```
+
+**示例 2：行内公式（中文移到外部）**
+```markdown
+# 修复前（中文在 LaTeX 中，MarkText 不渲染）
+- 下棋：$ S = \{ \text{所有可能的棋盘局面} \} $
+
+# 修复后（中文移到公式外部）
+- 下棋：$S = \{$ 所有可能的棋盘局面 $\}$
+```
+
+**注意事项：**
+- 英文文本在 `\text{}` 中通常可以正常渲染
+- 中文文本建议移到 LaTeX 公式外部
+- 如果必须保留中文在公式中，可以尝试使用 `\text{}` 但可能仍然无法渲染
+
 ## 完整修复流程
 
 1. **Step 1-2**：替换公式分隔符（`\(...\)` → `$...$`，`\[...\]` → `$$...$$`）
@@ -154,6 +202,7 @@ output_mode: content
 3. **Step 4**：移除 `$$` 块的缩进（代码块中的缩进除外）
 4. **Step 5**：修复 `$$` 结束标记与文字同行的问题
 5. **Step 6**：修复 `<br>` 标签
+6. **Step 7**：修复 LaTeX 公式中的中文字符
 
 ## 注意事项
 
@@ -164,3 +213,4 @@ output_mode: content
 - 表格中的 `|` 符号可能与 LaTeX 的 `\mid` 冲突，需要特别处理
 - `<br>` 标签在 MarkText 中可能显示为原始文本，需要替换为其他分隔符
 - **代码块中的缩进是正常的**，不需要修复
+- **中文字符在 LaTeX 公式中可能无法渲染**，建议移到公式外部或转换为表格
